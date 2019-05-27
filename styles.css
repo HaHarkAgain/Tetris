@@ -1,0 +1,7 @@
+body {
+    background-color: gray;
+}
+#tetris {
+    margin: auto;
+    display: block;
+}
