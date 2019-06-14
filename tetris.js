@@ -401,7 +401,9 @@ function tetris() {
             ctx.font = "30px Arial";
             ctx.textAlign = "center";
             ctx.fillText('Press "space" to start!', canv.width / 2, canv.height / 3);
-            ctx.fillText('Press "c" to hold a piece', canv.width / 2, canv.height / 3 * 2)
+            ctx.fillText('Arrow Keys to move', canv.width / 2, canv.height / 2)
+            ctx.fillText('Press "up arrow" to rotate', canv.width / 2, canv.height / 3 * 2)
+            ctx.fillText('Press "c" to hold a piece', canv.width / 2, canv.height / 5 * 4)
             if (score > 0) {
                 ctx.fillText("Score: " + score, canv.width / 2, 5 * unit - 5);
             }
