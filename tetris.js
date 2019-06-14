@@ -8,8 +8,18 @@ function tetris() {
     var orientation = 0; // 0 = horizontal
     var playing = false;
     var score = 0;
-    var lose = false;
-    function reset() {
+    var hold = -1;
+    var held = false;
+    var shapeHeld = "";
+    var locking = false;
+    fps = setInterval(function(){ // auto move down
+        if (playing) {
+            lockCheck();
+            posY += 1;
+            updateShape();
+        }
+    }, 1000);
+    function reset() { // runs when game starts
         score = 0;
         playing = true;
         shapeArray = [];
@@ -37,16 +47,16 @@ function tetris() {
             [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2],
             [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
         ];
+        shape = Math.floor(Math.random() * 7);
         defineShape();
-        posY += 1;
-        updateShape();
+        clearInterval(fps);
         fps = setInterval(function(){
             if (playing) {
                 lockCheck();
                 posY += 1;
                 updateShape();
             }
-        }, 1000);
+        }, 1000); 
     }
     function move(evt) {
         if (evt.keyCode == 37) { // left
@@ -74,14 +84,84 @@ function tetris() {
         if (evt.keyCode == 32) { // space
             if (playing) {
                 locked = false;
+                locking = true;
                 while (locked == false) {
                     lockCheck();
-                    posY += 1;
+                    posY++;
                     updateShape();
                 } 
             }
             else {
                 reset();
+            }
+            locking = false;
+        }
+        if (evt.keyCode == 67) { // c for holding shape
+            if (held == false) { // only one hold per block placed
+                if (hold >= 0) { // swapping whether or not it's the first time
+                    i = shape;
+                    shape = hold;
+                    hold = i;
+                }
+                else {
+                    hold = shape;
+                    shape = Math.floor(Math.random() * 7);
+                }
+                if (hold == 0) {   
+                    shapeHeld = "Square";
+                }
+                if (hold == 1) {
+                    shapeHeld = "Bar";
+                }
+                if (hold == 2) {
+                    shapeHeld = "L Shape";
+                }
+                if (hold == 3) {
+                    shapeHeld = "Reverse L Shape";
+                }
+                if (hold == 4) {
+                    shapeHeld = "Right Stairs";
+                }
+                if (hold == 5) {
+                    shapeHeld = "Left Stairs";
+                }
+                if (hold == 6) {
+                    shapeHeld = "T Shape";
+                }
+                orientation = 0;
+                defineShape(); 
+                held = true;
+            }
+        }
+    }
+    function prediction() { // runs whenever a piece updates to show where it will drop
+        iposY = posY; // intermediate posY that doesnt affect other functions
+        locked = false;
+        while (locked == false) { // starting from the current position it checks under until it hits a wall
+            for (x = 0; x < 4; x++) {
+                for (y = 0; y < 4; y++) {
+                    if (currentShape[y][x] == 1) {
+                        if (arena[iposY + y + 1][posX + x] == 2) { 
+                            locked = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            iposY++;
+        }
+        for (x = 1; x < 11; x++) { // clears previously drawn predictions
+            for (y = 0; y < 20; y++) {
+                if (arena[y][x] == 3) {
+                    arena[y][x] = 0;
+                }
+            }
+        }
+        for (x = 0; x < 4; x++) {  // adds the prediction to the arena
+            for (y = 0; y < 4; y++) {
+                if ((currentShape[y][x] == 1) && (arena[iposY + y - 1][posX + x] != 1)) { 
+                    arena[iposY + y - 1][posX + x] = 3; 
+                }
             }
         }
     }
@@ -130,7 +210,6 @@ function tetris() {
             [0, 0, 0, 0],
             [0, 0, 0, 0]
         ];
-        shape = Math.floor(Math.random() * 7);
         if (shape == 0) {   
             shapeArray = square;
         }
@@ -153,6 +232,8 @@ function tetris() {
             shapeArray = TShape;
         }
         clearRows();
+        updateShape();
+        prediction();
     }
     function clearRows() { // runs when a new shape is called
         for (y = 19; y > 1; y--) {
@@ -171,10 +252,18 @@ function tetris() {
                         arena[j][k] = arena [j - 1][k];
                     }
                 }
-                score += 500;
+                score += 10;
                 clearRows(); // repeats for if there are multiple full rows
             }
         }
+        clearInterval(fps);
+        fps = setInterval(function(){
+            if (playing) {
+                lockCheck();
+                posY += 1;
+                updateShape();
+            }
+        }, 1000 - score);
     }
     function updateShape() { // runs to update positioning and rotation of shape
         for (x = 1; x < 11; x++) {
@@ -209,9 +298,14 @@ function tetris() {
                         arrayX = y;
                         arrayY = -x + 2;
                     }
-                    if ((shape == 1) && (orientation == 3)) { // exception for the bar, otherwise it is rotated outside of its array range
-                        arrayY += 1;
-                        arrayX -= 1;
+                    if (shape == 1) { // exception for the bar, otherwise it is rotated outside of its array range
+                        if (orientation == 2) {
+                            arrayX++;
+                        }
+                        if (orientation == 3) {
+                            arrayY++;
+                            arrayX++;
+                        }
                     }
                     if (arena[posY + arrayY][posX + arrayX] == 2) { // check if rotating the shape moved it into a wall
                         orientation = (orientation + 3) % 4;
@@ -224,6 +318,9 @@ function tetris() {
                     }
                 }
             }
+        }
+        if (locking == false) { // can't predict while locking
+            prediction();
         }
     }
     function lockCheck() { // bottom collision, runs when moves down
@@ -240,18 +337,20 @@ function tetris() {
                             }
                         }
                         if (posY == 1) {
-                            lose = true;
                             playing = false;
+                            clearInterval(fps);
                         }
                         locked = true;
+                        shape = Math.floor(Math.random() * 7);
                         defineShape();
+                        held = false;
                         break;
                     }
                 }
             }
         }
     }
-    function collision() { // runs whenever a piece moves
+    function collision() { // runs whenever a piece moves for side collisions
         for (x = 0; x < 4; x++) {
             for (y = 0; y < 4; y++) {
                 if (currentShape[y][x] == 1) {
@@ -282,26 +381,30 @@ function tetris() {
                         ctx.fillStyle = "green";
                         ctx.fillRect(x * unit, y * unit, unit + 1, unit + 1);
                     }
+                    if (arena[y][x] == 3) { // prediction
+                        ctx.fillStyle = "red";
+                        ctx.fillRect(x * unit, y * unit, unit + 1, unit + 1);
+                    }
                 }
             }
             ctx.fillStyle = "white";
             ctx.font = "30px Arial";
             ctx.textAlign = "center";
-            ctx.fillText("Score: " + score, canv.width / 2, 4 * unit);
-            
+            ctx.fillText("Score: " + score, canv.width / 2, 5 * unit - 5);
+            if (hold >= 0) {
+                ctx.fillText("Shape Held:", canv.width / 3, 2 * unit - 5);
+                ctx.fillText(shapeHeld, canv.width / 2, 3 * unit - 5);
+            }
         }
-        if ((playing == false) && (lose == false)) {
+        else {
             ctx.fillStyle = "white";
             ctx.font = "30px Arial";
             ctx.textAlign = "center";
-            ctx.fillText('Press "space" to start!', canv.width / 2, canv.height / 2);
-        }
-        if (lose) {
-            ctx.fillStyle = "white";
-            ctx.font = "30px Arial";
-            ctx.textAlign = "center";
-            ctx.fillText('Refresh the page to restart', canv.width / 2, canv.height / 2);
-            ctx.fillText("Score: " + score, canv.width / 2, 4 * unit);
+            ctx.fillText('Press "space" to start!', canv.width / 2, canv.height / 3);
+            ctx.fillText('Press "c" to hold a piece', canv.width / 2, canv.height / 3 * 2)
+            if (score > 0) {
+                ctx.fillText("Score: " + score, canv.width / 2, 5 * unit - 5);
+            }
         }
         window.requestAnimationFrame(draw);
     }
