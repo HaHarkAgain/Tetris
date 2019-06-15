@@ -3,6 +3,8 @@ function tetris() {
     window.addEventListener("keydown", move);
     canv = document.getElementById("tetris");
     ctx = canv.getContext("2d");
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canv.width, canv.height); // backdrop
     var unit = canv.width / 12;
     var shapeArray = [];
     var orientation = 0; // 0 = horizontal
@@ -363,9 +365,10 @@ function tetris() {
         }
     }
     function draw() {
-        ctx.fillStyle = "black";
-        ctx.fillRect(0, 0, canv.width, canv.height); // backdrop
+        
         if (playing) {
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, canv.width, canv.height); // backdrop
             ctx.fillStyle = "white";
             for (i = 2; i <= 20; i++) {
                 ctx.fillRect(i * unit, 0, 1, canv.height); // vertical lines
