@@ -10,6 +10,8 @@ function tetris() {
     var orientation = 0; // 0 = horizontal
     var playing = false;
     var score = 0;
+    var combo = 0;
+    var lastCombo = 0;
     var hold = -1;
     var held = false;
     var shapeHeld = "";
@@ -23,6 +25,8 @@ function tetris() {
     }, 1000);
     function reset() { // runs when game starts
         score = 0;
+        combo = 0;
+        lastCombo = 0;
         playing = true;
         shapeArray = [];
         orientation = 0;
@@ -254,10 +258,14 @@ function tetris() {
                         arena[j][k] = arena [j - 1][k];
                     }
                 }
-                score += 10;
+                combo++;
+                lastCombo = combo;
                 clearRows(); // repeats for if there are multiple full rows
+                break;
             }
         }
+        score += 10 * Math.pow(combo, 2);
+        combo = 0;
         clearInterval(fps);
         fps = setInterval(function(){
             if (playing) {
@@ -365,7 +373,6 @@ function tetris() {
         }
     }
     function draw() {
-        
         if (playing) {
             ctx.fillStyle = "black";
             ctx.fillRect(0, 0, canv.width, canv.height); // backdrop
@@ -394,6 +401,9 @@ function tetris() {
             ctx.font = "30px Arial";
             ctx.textAlign = "center";
             ctx.fillText("Score: " + score, canv.width / 2, 5 * unit - 5);
+            if (lastCombo > 1) {
+                ctx.fillText(lastCombo + "x Combo!", canv.width / 2, 6 * unit - 5);
+            }
             if (hold >= 0) {
                 ctx.fillText("Shape Held:", canv.width / 3, 2 * unit - 5);
                 ctx.fillText(shapeHeld, canv.width / 2, 3 * unit - 5);
